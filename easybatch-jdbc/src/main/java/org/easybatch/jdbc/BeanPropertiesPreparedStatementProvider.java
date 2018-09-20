@@ -68,12 +68,23 @@ public class BeanPropertiesPreparedStatementProvider implements PreparedStatemen
         int index = 1;
         for (String property: properties) {
             try {
+                boolean found = false;
                 for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
                     if (propertyDescriptor.getName().equals(property)) {
+                    	found = true;
                         Object value = propertyDescriptor.getReadMethod().invoke(record);
-                        preparedStatement.setObject(index++, value);
+                        if(value instanceof java.util.Date){
+                        	preparedStatement.setDate(index++, new java.sql.Date(((java.util.Date)value).getTime()));
+                        } else if(value instanceof java.sql.Date){
+                        	preparedStatement.setDate(index++, ((java.sql.Date)value));
+                        } else {
+                        	preparedStatement.setObject(index++, value);
+                        }
                         break;
                     }
+                }
+                if(!found){
+                	preparedStatement.setObject(index++, null);
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new BeanIntrospectionException(format("Unable to get property %s from type %s", property, record.getClass().getName()), e);
